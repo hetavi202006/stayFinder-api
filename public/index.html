@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>StayFinder – Find and book your stay</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏨</text></svg>">
+<style>
+:root{--bg:#f3f7f9;--card:#fff;--text:#12263a;--muted:#5b6b7a;--line:#d9e3ea;--accent:#0e7c86;--accent-ink:#fff;--bad:#b4230f;--ok:#17703a;color-scheme:light;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0d1b28;--card:#152636;--text:#e8f0f6;--muted:#9db0c0;--line:#25384a;--accent:#3fc1cc;--accent-ink:#06222a;--bad:#ff8a78;--ok:#6fd49a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0d1b28;--card:#152636;--text:#e8f0f6;--muted:#9db0c0;--line:#25384a;--accent:#3fc1cc;--accent-ink:#06222a;--bad:#ff8a78;--ok:#6fd49a;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1040px;margin:0 auto;padding:0 18px 48px}
+header{padding:28px 0 8px}
+h1{font:700 clamp(1.9rem,5vw,2.8rem)/1.1 Georgia,"Times New Roman",serif;margin:0 0 6px;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0 0 18px;max-width:52ch}
+.banner{background:var(--card);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:10px 14px;margin:0 0 16px;color:var(--muted);font-size:.92rem}
+form.search{display:grid;grid-template-columns:1.4fr 1fr auto;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px}
+label{display:block;font-size:.82rem;color:var(--muted);margin-bottom:3px}
+input{width:100%;font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 11px}
+input:focus-visible,button:focus-visible,summary:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button{font:inherit;font-weight:600;cursor:pointer;border:0;border-radius:8px;padding:10px 18px;background:var(--accent);color:var(--accent-ink)}
+button.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+button.danger{background:transparent;color:var(--bad);border:1px solid var(--bad)}
+form.search button{align-self:end}
+h2{font:700 1.25rem/1.2 Georgia,serif;margin:30px 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px}
+.hotel{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.band{height:74px;display:flex;align-items:flex-end;padding:10px 14px;color:#fff;font:700 1.05rem Georgia,serif}
+.body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:6px;flex:1}
+.row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.price{font-weight:700;font-size:1.15rem}.muted{color:var(--muted);font-size:.9rem}
+.hotel button{margin-top:auto}
+.empty{background:var(--card);border:1px dashed var(--line);border-radius:12px;padding:26px;text-align:center;color:var(--muted)}
+.msg{margin-top:10px;font-size:.95rem}.msg.err{color:var(--bad)}.msg.ok{color:var(--ok)}
+details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:14px}
+summary{cursor:pointer;font-weight:600}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+dialog{border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--text);padding:20px;width:min(440px,92vw)}
+dialog::backdrop{background:rgba(5,15,25,.6)}
+.actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px;flex-wrap:wrap}
+.mb{background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:12px;margin-top:12px}
+@media (max-width:640px){form.search{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:no-preference){button{transition:filter .15s}button:hover{filter:brightness(1.08)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+<h1>Find a stay you’ll like</h1>
+<p class="sub">Search hotels by city and budget, check availability for your dates, and book in one step.</p>
+</header>
+<div id="banner" class="banner" hidden>Demo mode: the StayFinder API isn’t connected, so hotels and bookings live only in this browser tab. Run the project with Docker to use the real PostgreSQL database.</div>
+
+<form class="search" id="searchForm">
+<div><label for="city">City</label><input id="city" placeholder="Goa, Jaipur, Manali…" autocomplete="off"></div>
+<div><label for="maxPrice">Max price per night (₹)</label><input id="maxPrice" type="number" min="1" placeholder="Any"></div>
+<button type="submit">Search hotels</button>
+</form>
+
+<h2 id="resultsTitle">Hotels</h2>
+<div id="hotels" class="grid" aria-live="polite"></div>
+
+<h2>Manage a booking</h2>
+<div class="search" style="display:grid;grid-template-columns:1fr auto auto;gap:10px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px">
+<div><label for="bid">Booking number</label><input id="bid" type="number" min="1" placeholder="e.g. 1"></div>
+<button id="findBtn" style="align-self:end">Find booking</button>
+<button id="cancelBtn" class="danger" style="align-self:end">Cancel booking</button>
+</div>
+<div id="bookingInfo"></div>
+
+<details>
+<summary>Add a hotel</summary>
+<form id="addForm">
+<div class="cols">
+<div><label for="hn">Hotel name</label><input id="hn" required></div>
+<div><label for="hc">City</label><input id="hc" required></div>
+<div><label for="hp">Price per night (₹)</label><input id="hp" type="number" min="1" required></div>
+<div><label for="hr">Rooms</label><input id="hr" type="number" min="1" step="1" required></div>
+<div><label for="hrt">Rating (0–5)</label><input id="hrt" type="number" min="0" max="5" step="0.1"></div>
+</div>
+<button type="submit">Add hotel</button>
+<div id="addMsg" class="msg"></div>
+</form>
+</details>
+</div>
+
+<dialog id="dlg">
+<form id="bookForm" method="dialog" style="margin:0">
+<h2 id="dTitle" style="margin-top:0"></h2>
+<div class="cols" style="grid-template-columns:1fr">
+<div><label for="gn">Your name</label><input id="gn" required></div>
+<div><label for="ge">Email</label><input id="ge" type="email" required></div>
+<div><label for="ci">Check-in</label><input id="ci" type="date" required></div>
+<div><label for="co">Check-out</label><input id="co" type="date" required></div>
+</div>
+<div id="total" class="muted"></div>
+<div id="dMsg" class="msg"></div>
+<div class="actions"><button type="button" class="ghost" id="closeBtn">Close</button><button type="submit" id="confirmBtn">Confirm booking</button></div>
+</form>
+</dialog>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>'₹'+Number(n).toLocaleString('en-IN');
+const SAMPLE=[
+{name:'Sea View Resort',city:'Goa',pricePerNight:3200,totalRooms:3,rating:4.5},
+{name:'Palm Shore Stay',city:'Goa',pricePerNight:1800,totalRooms:2,rating:4.1},
+{name:'Amber Fort Haveli',city:'Jaipur',pricePerNight:2600,totalRooms:2,rating:4.7},
+{name:'Pink City Inn',city:'Jaipur',pricePerNight:1400,totalRooms:4,rating:3.9},
+{name:'Pine Ridge Lodge',city:'Manali',pricePerNight:2200,totalRooms:2,rating:4.4},
+{name:'Ganga Ghat Homestay',city:'Varanasi',pricePerNight:1200,totalRooms:3,rating:4.2}];
+
+/* ---- API layer: real backend first, in-browser demo if it is not reachable ---- */
+let demoMode=false;const demo={hotels:[],bookings:[],nh:1,nb:1};
+function startDemo(){if(demoMode)return;demoMode=true;$('banner').hidden=false;SAMPLE.forEach(h=>mock('/api/hotels',{method:'POST',body:JSON.stringify(h)}));}
+async function api(path,o={}){
+ if(!demoMode){
+  try{
+   const r=await fetch(path,{headers:{'Content-Type':'application/json'},...o});
+   if(!(r.headers.get('content-type')||'').includes('json'))throw 0;
+   return{status:r.status,data:await r.json()};
+  }catch(e){startDemo();}
+ }
+ return mock(path,o);
+}
+function mock(path,o){
+ const m=o.method||'GET',u=new URL(path,'http://x'),b=o.body?JSON.parse(o.body):{},R=(s,d)=>({status:s,data:d});
+ if(u.pathname==='/api/hotels'&&m==='GET'){
+  const c=(u.searchParams.get('city')||'').toLowerCase(),p=+u.searchParams.get('maxPrice')||0;
+  return R(200,demo.hotels.filter(h=>(!c||h.city.toLowerCase()===c)&&(!p||+h.price_per_night<=p)));}
+ if(u.pathname==='/api/hotels'&&m==='POST'){
+  const h={id:demo.nh++,name:b.name,city:b.city,price_per_night:b.pricePerNight,total_rooms:b.totalRooms,rating:b.rating};
+  demo.hotels.push(h);return R(201,h);}
+ if(u.pathname==='/api/bookings'&&m==='POST'){
+  const h=demo.hotels.find(x=>x.id===b.hotelId);if(!h)return R(404,{error:'Hotel not found'});
+  if(!(b.checkOut>b.checkIn))return R(400,{errors:['Check-out must be after check-in']});
+  const n=demo.bookings.filter(x=>x.hotel_id===h.id&&x.status==='confirmed'&&x.check_in<b.checkOut&&x.check_out>b.checkIn).length;
+  if(n>=h.total_rooms)return R(409,{error:'No rooms available for these dates'});
+  const k={id:demo.nb++,hotel_id:h.id,guest_name:b.guestName,guest_email:b.guestEmail,check_in:b.checkIn,check_out:b.checkOut,status:'confirmed'};
+  demo.bookings.push(k);return R(201,k);}
+ const mm=u.pathname.match(/^\/api\/bookings\/(\d+)$/);
+ if(mm){const k=demo.bookings.find(x=>x.id===+mm[1]);if(!k)return R(404,{error:'Booking not found'});if(m==='DELETE')k.status='cancelled';return R(200,k);}
+ return R(404,{error:'Not found'});
+}
+const errText=d=>d.errors?d.errors.join(' '):(d.error||'Something went wrong. Try again.');
+
+/* ---- Hotels list ---- */
+const COLORS=['#0e7c86','#8a4fff','#c2410c','#1d6fb8','#2f855a','#b4236f'];
+let current=null;
+async function load(){
+ const p=new URLSearchParams();
+ if($('city').value.trim())p.set('city',$('city').value.trim());
+ if($('maxPrice').value)p.set('maxPrice',$('maxPrice').value);
+ const {status,data}=await api('/api/hotels'+(p.toString()?'?'+p:''));
+ const box=$('hotels');
+ if(status!==200){box.innerHTML='<div class="empty">'+esc(errText(data))+'</div>';return;}
+ $('resultsTitle').textContent=data.length?data.length+(data.length===1?' hotel':' hotels')+' found':'Hotels';
+ if(!data.length){
+  const filtered=p.toString();
+  box.innerHTML='<div class="empty" style="grid-column:1/-1">'+(filtered?'No hotels match your search. Try another city or a higher budget.':'No hotels yet. Load a few sample hotels to explore the site.<div class="actions" style="justify-content:center"><button id="seed">Load sample hotels</button></div>')+'</div>';
+  const s=$('seed');if(s)s.onclick=async()=>{for(const h of SAMPLE)await api('/api/hotels',{method:'POST',body:JSON.stringify(h)});load();};
+  return;}
+ box.innerHTML=data.map(h=>`<article class="hotel"><div class="band" style="background:${COLORS[h.id%COLORS.length]}">${esc(h.city)}</div>
+ <div class="body"><div class="row"><strong>${esc(h.name)}</strong><span class="muted">${h.rating!==null&&h.rating!==undefined?'★ '+Number(h.rating).toFixed(1):'New'}</span></div>
+ <div class="row"><span class="price">${money(h.price_per_night)} <span class="muted">/ night</span></span></div>
+ <span class="muted">${h.total_rooms} ${h.total_rooms==1?'room':'rooms'} in total</span>
+ <button data-id="${h.id}">Book this hotel</button></div></article>`).join('');
+ box.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>openBook(data.find(h=>h.id==b.dataset.id)));
+}
+$('searchForm').onsubmit=e=>{e.preventDefault();load();};
+
+/* ---- Booking dialog ---- */
+function iso(d){return d.toISOString().slice(0,10);}
+function openBook(h){
+ current=h;$('dTitle').textContent='Book '+h.name;$('dMsg').textContent='';$('dMsg').className='msg';$('total').textContent='';
+ const t=new Date(),n=new Date(Date.now()+864e5*2);
+ $('ci').min=iso(t);$('ci').value=iso(new Date(Date.now()+864e5));$('co').value=iso(n);$('confirmBtn').disabled=false;calc();$('dlg').showModal();
+}
+function calc(){
+ const a=new Date($('ci').value),b=new Date($('co').value),n=Math.round((b-a)/864e5);
+ $('total').textContent=n>0&&current?n+(n==1?' night':' nights')+' × '+money(current.price_per_night)+' = '+money(n*current.price_per_night):'';
+}
+$('ci').onchange=$('co').onchange=calc;
+$('closeBtn').onclick=()=>$('dlg').close();
+$('bookForm').onsubmit=async e=>{
+ e.preventDefault();$('confirmBtn').disabled=true;
+ const {status,data}=await api('/api/bookings',{method:'POST',body:JSON.stringify({hotelId:current.id,guestName:$('gn').value,guestEmail:$('ge').value,checkIn:$('ci').value,checkOut:$('co').value})});
+ const m=$('dMsg');
+ if(status===201){m.className='msg ok';m.textContent='Booking confirmed. Your booking number is '+data.id+'. Keep it to view or cancel this booking.';$('bid').value=data.id;}
+ else{m.className='msg err';m.textContent=errText(data);$('confirmBtn').disabled=false;}
+};
+
+/* ---- Manage booking ---- */
+function showBooking(k){
+ $('bookingInfo').innerHTML=`<div class="mb"><strong>Booking #${k.id}</strong> · <span style="color:${k.status==='confirmed'?'var(--ok)':'var(--bad)'}">${esc(k.status)}</span><br>
+ <span class="muted">${esc(k.guest_name)} · ${esc(k.check_in)} to ${esc(k.check_out)}</span></div>`;
+}
+async function manage(method){
+ const id=$('bid').value;if(!id){$('bookingInfo').innerHTML='<div class="msg err">Enter your booking number first.</div>';return;}
+ const {status,data}=await api('/api/bookings/'+encodeURIComponent(id),{method});
+ if(status===200)showBooking(data);else $('bookingInfo').innerHTML='<div class="msg err">'+esc(errText(data))+'</div>';
+}
+$('findBtn').onclick=()=>manage('GET');
+$('cancelBtn').onclick=()=>manage('DELETE');
+
+/* ---- Add hotel ---- */
+$('addForm').onsubmit=async e=>{
+ e.preventDefault();
+ const body={name:$('hn').value,city:$('hc').value,pricePerNight:Number($('hp').value),totalRooms:Number($('hr').value)};
+ if($('hrt').value!=='')body.rating=Number($('hrt').value);
+ const {status,data}=await api('/api/hotels',{method:'POST',body:JSON.stringify(body)});
+ const m=$('addMsg');
+ if(status===201){m.className='msg ok';m.textContent=data.name+' was added.';$('addForm').reset();load();}
+ else{m.className='msg err';m.textContent=errText(data);}
+};
+load();
+</script>
+</body>
+</html>
