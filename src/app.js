@@ -1,9 +1,11 @@
+const path = require('path');
 const express = require('express');
 const hotels = require('./routes/hotels');
 const bookings = require('./routes/bookings');
 
 const app = express();
 app.use(express.json());
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 app.get('/health', (req, res) => res.json({ status: 'ok' }));
 app.use('/api/hotels', hotels);
