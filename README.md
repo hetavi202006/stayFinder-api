@@ -1,5 +1,5 @@
 # StayFinder API
-
+[![CI](https://github.com/hetavi202006/stayFinder-api/actions/workflows/ci.yml/badge.svg)](https://github.com/hetavi202006/stayFinder-api/actions/workflows/ci.yml)
 A hotel search and booking REST API built with **Node.js, Express and PostgreSQL**.
 It prevents double-booking with database transactions and row locking, is covered by
 integration tests, and ships with Docker and a GitHub Actions CI pipeline.
